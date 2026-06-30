@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trouve l'Intrus Chromatique</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            font-size: 2rem;
+            text-align: center;
+        }
+
+        #status-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        #level-display {
+            font-size: 1.2rem;
+            color: #00adb5;
+            font-weight: bold;
+        }
+
+        #diff-display {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            max-width: 600px;
+            width: 100%;
+            background: #1e1e1e;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        @media (max-width: 500px) {
+            #grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .color-box {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            border: 2px solid transparent;
+        }
+
+        .color-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .color-box:active {
+            transform: scale(0.98);
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            height: 30px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        #restart-btn {
+            margin-top: 20px;
+            padding: 10px 25px;
+            font-size: 1rem;
+            background-color: #00adb5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        #restart-btn:hover {
+            background-color: #007c82;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Trouve l'Intrus !</h1>
+    <div id="status-container">
+        <div id="level-display">Niveau : 1 / 11</div>
+        <div id="diff-display">Écart RGB : 20</div>
+    </div>
+
+    <div id="grid"></div>
+
+    <div id="message"></div>
+    <button id="restart-btn" onclick="startGame()">Rejouer</button>
+
+    <script>
+        // Nouvelle configuration avec les 5 niveaux simples ajoutés au début
+        const difficulties = [20, 15, 10, 9, 5, 2, 1, 0.5, 0.05, 0.005, 0.0000001];
+        let currentLevel = 0;
+        let gameActive = true;
+
+        const grid = document.getElementById('grid');
+        const levelDisplay = document.getElementById('level-display');
+        const diffDisplay = document.getElementById('diff-display');
+        const message = document.getElementById('message');
+        const restartBtn = document.getElementById('restart-btn');
+
+        function startGame() {
+            currentLevel = 0;
+            gameActive = true;
+            restartBtn.style.display = 'none';
+            message.textContent = '';
+            message.style.color = 'white';
+            loadLevel();
+        }
+
+        function loadLevel() {
+            if (currentLevel >= difficulties.length) {
+                grid.innerHTML = '';
+                levelDisplay.textContent = "Félicitations !";
+                diffDisplay.textContent = "Tu as une vision parfaite.";
+                message.textContent = "Tu as surmonté les 11 niveaux ! 🏆";
+                message.style.color = "#4edf7a";
+                restartBtn.style.display = 'block';
+                gameActive = false;
+                return;
+            }
+
+            // Interface
+            levelDisplay.textContent = `Niveau : ${currentLevel + 1} / ${difficulties.length}`;
+            diffDisplay.textContent = `Écart RGB : ${difficulties[currentLevel]}`;
+            grid.innerHTML = '';
+
+            const currentDiff = difficulties[currentLevel];
+
+            // Choix d'une couleur de base stable
+            // On limite à un max de 235 pour éviter que l'ajout de l'écart (ex: +20) ne dépasse 255
+            const r = Math.floor(Math.random() * 195) + 20;
+            const g = Math.floor(Math.random() * 195) + 20;
+            const b = Math.floor(Math.random() * 195) + 20;
+
+            const baseColor = `rgb(${r}, ${g}, ${b})`;
+
+            // Choix du canal à modifier (0=R, 1=G, 2=B)
+            const channelToModify = Math.floor(Math.random() * 3);
+            let targetR = r, targetG = g, targetB = b;
+
+            if (channelToModify === 0) targetR += currentDiff;
+            else if (channelToModify === 1) targetG += currentDiff;
+            else targetB += currentDiff;
+
+            const fakeColor = `rgb(${targetR}, ${targetG}, ${targetB})`;
+            const fakeIndex = Math.floor(Math.random() * 10);
+
+            // Génération des 10 cases
+            for (let i = 0; i < 10; i++) {
+                const box = document.createElement('div');
+                box.classList.add('color-box');
+                
+                if (i === fakeIndex) {
+                    box.style.backgroundColor = fakeColor;
+                    box.dataset.isFake = "true";
+                } else {
+                    box.style.backgroundColor = baseColor;
+                    box.dataset.isFake = "false";
+                }
+
+                box.addEventListener('click', () => handleBoxClick(box));
+                grid.appendChild(box);
+            }
+        }
+
+        function handleBoxClick(box) {
+            if (!gameActive) return;
+
+            if (box.dataset.isFake === "true") {
+                message.textContent = "Bien joué ! Niveau suivant...";
+                message.style.color = "#4edf7a";
+                gameActive = false;
+                
+                setTimeout(() => {
+                    currentLevel++;
+                    gameActive = true;
+                    message.textContent = "";
+                    loadLevel();
+                }, 800); // Transition légèrement plus rapide (800ms au lieu de 1000ms)
+            } else {
+                message.textContent = "Raté ! Réessaie.";
+                message.style.color = "#ff4d4d";
+                
+                box.style.transform = "scale(0.9)";
+                box.style.opacity = "0.4";
+                setTimeout(() => {
+                    if(gameActive) box.style.transform = "";
+                }, 200);
+            }
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
